@@ -88,11 +88,11 @@ function Header() {
   className="uefs-logo-link"
   title="Universidade Estadual de Feira de Santana"
 >
-  <img
-    src="/logos/uefs.png"
-    alt="Universidade Estadual de Feira de Santana"
-    className="uefs-logo"
-  />
+ <img
+  src={`${import.meta.env.BASE_URL}logos/uefs.png`}
+  alt="Universidade Estadual de Feira de Santana"
+  className="uefs-logo"
+/>
 </a>
 </nav>
       </div>
