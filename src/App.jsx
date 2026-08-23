@@ -81,7 +81,20 @@ function Header() {
             </Link>
           ))}
           <Link to="/admin" className="admin-button"><LockKeyhole size={16} /> Área Administrativa</Link>
-        </nav>
+        <a
+  href="https://www.uefs.br/"
+  target="_blank"
+  rel="noopener noreferrer"
+  className="uefs-logo-link"
+  title="Universidade Estadual de Feira de Santana"
+>
+  <img
+    src="/logos/uefs.png"
+    alt="Universidade Estadual de Feira de Santana"
+    className="uefs-logo"
+  />
+</a>
+</nav>
       </div>
     </header>
   );
@@ -92,7 +105,9 @@ function Footer() {
     <footer className="footer">
       <div className="footer-inner">
         <div>
-          <Logo />
+          <div className="footer-brand">
+  <Logo />
+</div>
           <p>Acervo digital para estudo, pesquisa e ensino sobre câncer oral.</p>
         </div>
         <div className="footer-links">
@@ -285,8 +300,29 @@ function SlideViewer({ image, alt }) {
   const [start, setStart] = useState({ x: 0, y: 0 });
   const [fullscreen, setFullscreen] = useState(false);
 
-  const changeZoom = (amount) => setZoom(z => Math.min(5, Math.max(0.5, +(z + amount).toFixed(2))));
-  const reset = () => { setZoom(1); setPosition({ x: 0, y: 0 }); };
+  const MIN_ZOOM = 0.5;
+  const MAX_ZOOM = 6;
+  const STEP = 0.25;
+
+  const changeZoom = (amount) => {
+    setZoom((current) => {
+      const next = Math.min(
+        MAX_ZOOM,
+        Math.max(MIN_ZOOM, +(current + amount).toFixed(2))
+      );
+
+      if (next <= 1) {
+        setPosition({ x: 0, y: 0 });
+      }
+
+      return next;
+    });
+  };
+
+  const reset = () => {
+    setZoom(1);
+    setPosition({ x: 0, y: 0 });
+  };
 
   const onWheel = (e) => {
     e.preventDefault();
@@ -295,45 +331,145 @@ function SlideViewer({ image, alt }) {
 
   const onPointerDown = (e) => {
     if (zoom <= 1) return;
+
     e.currentTarget.setPointerCapture(e.pointerId);
     setDragging(true);
-    setStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+
+    setStart({
+      x: e.clientX - position.x,
+      y: e.clientY - position.y,
+    });
   };
 
   const onPointerMove = (e) => {
     if (!dragging) return;
-    setPosition({ x: e.clientX - start.x, y: e.clientY - start.y });
+
+    setPosition({
+      x: e.clientX - start.x,
+      y: e.clientY - start.y,
+    });
   };
 
-  const onPointerUp = () => setDragging(false);
+  const onPointerUp = () => {
+    setDragging(false);
+  };
+
+  const onDoubleClick = () => {
+    if (zoom < 2) {
+      setZoom(2);
+    } else {
+      reset();
+    }
+  };
+
+  const handleKeyboard = (e) => {
+    if (e.key === "+" || e.key === "=") {
+      changeZoom(STEP);
+    }
+
+    if (e.key === "-") {
+      changeZoom(-STEP);
+    }
+
+    if (e.key === "0") {
+      reset();
+    }
+  };
 
   return (
-    <div className={fullscreen ? "viewer fullscreen" : "viewer"}>
+    <div
+      className={fullscreen ? "viewer fullscreen" : "viewer"}
+      onKeyDown={handleKeyboard}
+    >
       <div className="viewer-top">
-        <span>Visualizador de lâmina</span>
-        <button onClick={() => setFullscreen(!fullscreen)} title="Tela cheia"><Maximize2 size={18} /></button>
+        <div>
+          <strong>Visualizador de lâmina</strong>
+          <span className="viewer-zoom-label">
+            {Math.round(zoom * 100)}%
+          </span>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setFullscreen(!fullscreen)}
+          title={fullscreen ? "Sair da tela cheia" : "Abrir em tela cheia"}
+          aria-label={fullscreen ? "Sair da tela cheia" : "Abrir em tela cheia"}
+        >
+          <Maximize2 size={19} />
+        </button>
       </div>
+
       <div
-        className={dragging ? "viewer-stage dragging" : "viewer-stage"}
+        className={`viewer-stage ${
+          dragging ? "dragging" : ""
+        } ${zoom > 1 ? "can-drag" : ""}`}
         onWheel={onWheel}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
+        onDoubleClick={onDoubleClick}
+        tabIndex={0}
+        aria-label="Visualizador interativo da lâmina histológica"
       >
         <img
           src={image}
           alt={alt}
           draggable="false"
-          style={{ transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})` }}
+          className="viewer-image"
+          style={{
+            transform: `translate3d(${position.x}px, ${position.y}px, 0) scale(${zoom})`,
+          }}
         />
       </div>
+
       <div className="viewer-controls">
-        <button onClick={() => changeZoom(-0.25)} title="Diminuir zoom"><ZoomOut size={19} /></button>
-        <span>{Math.round(zoom * 100)}%</span>
-        <button onClick={() => changeZoom(0.25)} title="Aumentar zoom"><ZoomIn size={19} /></button>
-        <button onClick={reset} title="Restaurar"><RotateCcw size={18} /></button>
-        <small>Role o mouse para zoom • arraste a imagem quando ampliada</small>
+        <button
+          type="button"
+          onClick={() => changeZoom(-STEP)}
+          disabled={zoom <= MIN_ZOOM}
+          title="Diminuir zoom"
+          aria-label="Diminuir zoom"
+        >
+          <ZoomOut size={20} />
+        </button>
+
+        <button
+          type="button"
+          className="zoom-value"
+          onClick={reset}
+          title="Clique para voltar a 100%"
+        >
+          {Math.round(zoom * 100)}%
+        </button>
+
+        <button
+          type="button"
+          onClick={() => changeZoom(STEP)}
+          disabled={zoom >= MAX_ZOOM}
+          title="Aumentar zoom"
+          aria-label="Aumentar zoom"
+        >
+          <ZoomIn size={20} />
+        </button>
+
+        <div className="viewer-control-separator" />
+
+        <button
+          type="button"
+          onClick={reset}
+          title="Centralizar e redefinir zoom"
+          aria-label="Redefinir visualização"
+        >
+          <RotateCcw size={19} />
+        </button>
+
+        <div className="viewer-help">
+          <span>🖱️ Role para ampliar</span>
+          <span>✋ Arraste quando ampliada</span>
+          <span>＋ / − para zoom</span>
+          <span>0 para redefinir</span>
+        </div>
       </div>
     </div>
   );
